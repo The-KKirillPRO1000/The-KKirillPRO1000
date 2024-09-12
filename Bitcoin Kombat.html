@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Kombat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #fff8e1; /* Светлый жёлтый фон */
+            text-align: center;
+            position: relative; /* Убедимся, что позиционирование работает корректно */
+        }
+
+        .container {
+            margin-top: 20px;
+        }
+
+        .bitcoin img {
+            width: 100px;
+            cursor: pointer;
+        }
+
+        #score {
+            font-size: 24px;
+            margin-top: 20px;
+            color: #ff9800; /* Цвет текста для счета */
+        }
+
+        #energy {
+            font-size: 20px;
+            margin-top: 10px;
+            color: #f57f17; /* Цвет текста для энергии */
+        }
+
+        .bottom-panel {
+            position: fixed;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px; /* Расстояние между кнопками */
+            width: 100%;
+            background-color: #ffe57f; /* Жёлтый фон для панели */
+            padding: 10px;
+            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .button {
+            width: 60px;
+            height: 60px;
+            background-color: #ffd54f; /* Светлый жёлтый фон для кнопок */
+            border: 2px solid #fbc02d; /* Тёмно-жёлтая граница */
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 24px;
+            color: #ff6f00; /* Цвет текста на кнопках */
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .button:hover {
+            background-color: #ffca28; /* Темнеет при наведении */
+            transform: scale(1.1); /* Увеличение при наведении */
+        }
+
+        #settings {
+            width: auto; /* Делаем кнопку шириной по содержимому */
+            padding: 0 10px;
+        }
+
+        /* Обновленные стили для центрации меню */
+        #settings-panel, #upgrade-panel {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fffde7; /* Светлый жёлтый фон для панелей */
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 1000; /* Поверх всего остального контента */
+        }
+
+        #settings-panel button, #upgrade-panel button {
+            display: block;
+            margin: 10px 0;
+            background-color: #ffeb3b; /* Жёлтая кнопка */
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 16px;
+            color: #f57f17; /* Цвет текста на кнопках */
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        #settings-panel button:hover, #upgrade-panel button:hover {
+            background-color: #fdd835; /* Темнеет при наведении */
+            transform: scale(1.05); /* Увеличение при наведении */
+        }
+
+        #upgrade-panel p {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #ff9800; /* Цвет текста заголовка панели прокачки */
+        }
+    </style>
+</head>
+<body>
+    <h1>Bitcoin Kombat</h1>
+    <div class="container">
+        <div class="bitcoin" id="bitcoin">
+            <img src="https://e7.pngegg.com/pngimages/790/356/png-clipart-bitcoin-bitcoin.png" alt="Bitcoin">
+        </div>
+        <p id="score">Score: 0</p>
+        <p id="energy">Energy: 100/100</p>
+    </div>
+    <div class="bottom-panel">
+        <div class="button" id="upgrade">$</div>
+        <div class="button" id="settings">Настройки</div>
+    </div>
+    
+    <div id="settings-panel">
+        <button id="change-lang-en">English</button>
+        <button id="change-lang-ru">Русский</button>
+        <button id="change-lang-ua">Українська</button>
+    </div>
+
+    <div id="upgrade-panel">
+        <p>Upgrade Options:</p>
+        <button id="upgrade-clicks">Улучшить клики (Level: 0) - 500 кликов</button>
+        <button id="upgrade-energy">Увеличить лимит энергии (Level: 0) - 1000 кликов</button>
+        <button id="upgrade-regeneration">Улучшить регенерацию (Level: 0) - 10000 кликов</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const bitcoin = document.getElementById('bitcoin');
+            const scoreElement = document.getElementById('score');
+            const energyElement = document.getElementById('energy');
+            const upgradeButton = document.getElementById('upgrade');
+            const settingsButton = document.getElementById('settings');
+            const settingsPanel = document.getElementById('settings-panel');
+            const upgradePanel = document.getElementById('upgrade-panel');
+            const changeLangEn = document.getElementById('change-lang-en');
+            const changeLangRu = document.getElementById('change-lang-ru');
+            const changeLangUa = document.getElementById('change-lang-ua');
+            const upgradeClicksButton = document.getElementById('upgrade-clicks');
+            const upgradeEnergyButton = document.getElementById('upgrade-energy');
+            const upgradeRegenerationButton = document.getElementById('upgrade-regeneration');
+
+            let score = 0;
+            let energy = 100;
+            const maxEnergy = 100;
+            let clicksLevel = 0;
+            let energyLevel = 0;
+            let regenerationLevel = 0;
+            let regenerationPerSecond = 1; // Начальная регенерация
+
+            // Загрузка состояния из localStorage
+            const loadGame = () => {
+                const savedScore = localStorage.getItem('score');
+                const savedEnergy = localStorage.getItem('energy');
+                const savedClicksLevel = localStorage.getItem('clicksLevel');
+                const savedEnergyLevel = localStorage.getItem('energyLevel');
+                const savedRegenerationLevel = localStorage.getItem('regenerationLevel');
+
+                if (savedScore !== null) score = parseInt(savedScore, 10);
+                if (savedEnergy !== null) energy = parseInt(savedEnergy, 10);
+                if (savedClicksLevel !== null) clicksLevel = parseInt(savedClicksLevel, 10);
+                if (savedEnergyLevel !== null) energyLevel = parseInt(savedEnergyLevel, 10);
+                if (savedRegenerationLevel !== null) regenerationLevel = parseInt(savedRegenerationLevel, 10);
+
+                regenerationPerSecond = regenerationLevel; // Регенерация увеличивается на 1 за уровень
+                updateEnergy();
+                scoreElement.textContent = `Score: ${score}`;
+                upgradeClicksButton.textContent = `Улучшить клики (Level: ${clicksLevel}) - 500 кликов`;
+                upgradeEnergyButton.textContent = `Увеличить лимит энергии (Level: ${energyLevel}) - 1000 кликов`;
+                upgradeRegenerationButton.textContent = `Улучшить регенерацию (Level: ${regenerationLevel}) - 10000 кликов`;
+            };
+
+            // Сохранение состояния в localStorage
+            const saveGame = () => {
+                localStorage.setItem('score', score);
+                localStorage.setItem('energy', energy);
+                localStorage.setItem('clicksLevel', clicksLevel);
+                localStorage.setItem('energyLevel', energyLevel);
+                localStorage.setItem('regenerationLevel', regenerationLevel);
+            };
+
+            // Обновление энергии в интерфейсе
+            const updateEnergy = () => {
+                energyElement.textContent = `Energy: ${energy}/${maxEnergy}`;
+            };
+
+            bitcoin.addEventListener('click', () => {
+                if (energy > 0) {
+                    score += (1 + clicksLevel);
+                    energy--;
+                    scoreElement.textContent = `Score: ${score}`;
+                    updateEnergy();
+                    saveGame();
+                } else {
+                    alert('Not enough energy!');
+                }
+            });
+
+            upgradeButton.addEventListener('click', () => {
+                upgradePanel.style.display = upgradePanel.style.display === 'block' ? 'none' : 'block';
+            });
+
+            settingsButton.addEventListener('click', () => {
+                settingsPanel.style.display = settingsPanel.style.display === 'block' ? 'none' : 'block';
+            });
+
+            upgradeClicksButton.addEventListener('click', () => {
+                if (score >= 500) {
+                    score -= 500;
+                    clicksLevel++;
+                    upgradeClicksButton.textContent = `Улучшить клики (Level: ${clicksLevel}) - 500 кликов`;
+                    scoreElement.textContent = `Score: ${score}`;
+                    saveGame();
+                } else {
+                    alert('Not enough clicks to upgrade!');
+                }
+            });
+
+            upgradeEnergyButton.addEventListener('click', () => {
+                if (score >= 1000) {
+                    score -= 1000;
+                    energyLevel++;
+                    updateEnergy();
+                    upgradeEnergyButton.textContent = `Увеличить лимит энергии (Level: ${energyLevel}) - 1000 кликов`;
+                    scoreElement.textContent = `Score: ${score}`;
+                    saveGame();
+                } else {
+                    alert('Not enough clicks to upgrade!');
+                }
+            });
+
+            upgradeRegenerationButton.addEventListener('click', () => {
+                if (score >= 10000) {
+                    score -= 10000;
+                    regenerationLevel++;
+                    regenerationPerSecond = regenerationLevel; // Регенерация увеличивается на 1 за уровень
+                    upgradeRegenerationButton.textContent = `Улучшить регенерацию (Level: ${regenerationLevel}) - 10000 кликов`;
+                    scoreElement.textContent = `Score: ${score}`;
+                    saveGame();
+                } else {
+                    alert('Not enough clicks to upgrade!');
+                }
+            });
+
+            changeLangEn.addEventListener('click', () => {
+                window.location.href = 'en.html';
+            });
+
+            changeLangRu.addEventListener('click', () => {
+                window.location.href = 'ru.html';
+            });
+
+            changeLangUa.addEventListener('click', () => {
+                window.location.href = 'ua.html';
+            });
+
+            setInterval(() => {
+                if (energy < maxEnergy) {
+                    energy = Math.min(maxEnergy, energy + regenerationPerSecond);
+                    console.log(`Regenerating energy: ${energy}/${maxEnergy}`); // Отладка
+                    updateEnergy();
+                    saveGame(); // Сохраняем состояние после обновления энергии
+                }
+            }, 1000);
+
+            loadGame(); // Загружаем состояние при старте
+        });
+    </script>
+</body>
+</html>
